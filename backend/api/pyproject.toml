@@ -28,6 +28,12 @@ dev = ["pytest>=8.0", "httpx>=0.27", "anyio>=4.0"]
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+# The measurement package lives in this repo, not on PyPI. uv (which Vercel uses to install
+# this service) reads this; plain pip ignores it, so local installs still use
+# `pip install -e packages/colourlock` first.
+[tool.uv.sources]
+colourlock = { path = "../../packages/colourlock" }
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: tests that load the full study dataset"]
