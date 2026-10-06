@@ -15,9 +15,14 @@ def config_dir() -> Path:
     env = os.environ.get(CONFIG_DIR_ENV)
     if env:
         return Path(env)
-    # Fallback for local dev: repo_root/config, four levels up from this file
+    # Local dev: repo_root/config, four levels up from this file
     # (src/colourlock/config.py -> colourlock -> src -> packages/colourlock -> repo root).
-    return Path(__file__).resolve().parents[4] / "config"
+    repo = Path(__file__).resolve().parents[4] / "config"
+    if repo.is_dir():
+        return repo
+    # Installed from a wheel (e.g. on Vercel): the copy setup.py bundled at build time.
+    bundled = Path(__file__).resolve().parent / "_config"
+    return bundled if bundled.is_dir() else repo
 
 
 def load_qc_config(config_dir_override: Path | None = None) -> QCConfig:
