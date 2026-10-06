@@ -1,0 +1,25 @@
+# Decision log
+
+Closed decisions. Don't re-open them unless the user explicitly asks.
+New decisions get appended with the next id.
+
+| ID | Decision | Why |
+|---|---|---|
+| D-01 | Hosted Pollinations endpoints are gone for good. | Rate limits, 402s, no model pinning, JPEG codec. |
+| D-02 | Both models run locally from HF with `diffusers`. | Reproducibility, seed determinism, version pinning. |
+| D-03 | `PROMPT_FIT_CLIP = True` is the default. | The v6 prompts confounded H3. |
+| D-04 | `MAX_RETRIES = 0`. | Retrying to pass QC is selection bias and triples GPU time. |
+| D-05 | The manifest keeps `seed_used`; `seed_or_call_index` is not the seed record. | v15 provenance fix. |
+| D-06 | Never run two diffusion models concurrently on one GPU. | Both are GPU-resident giants; overlapping them OOMs. |
+| D-07 | No model export or conversion (ONNX, raw torch, TensorRT) for deployment. | No trained weights exist; conversion breaks parity. Load from HF at pinned revisions. |
+| D-08 | The deployable asset is the measurement package, not a model. | The contribution is the instrument. |
+| D-09 | Study statistics are computed offline only; the API serves stored results. | They are group-level properties under controlled conditions. |
+| D-10 | Weights live on a persistent volume, never in container images. | ~41 GB; the gated repo token must not be baked in. |
+| D-11 | GPU workers are long-lived and non-forking, one model each. | Avoids reloading weights per job. |
+| D-12 | Don't package or deploy until `FLAT_P95_DE_MAX` is finalised. | Otherwise an unjustified value is frozen into production. |
+| D-QC | `FLAT_P95_DE_MAX = 3.0`, kept as the final threshold for the frozen dataset. | This is the value the dataset was actually generated and QC'd with (run 20260913T083658Z; 772/2,560 = 30.2% kept). Chosen before dE00 results were read, per pre-registration. Justification: Step 7a's distribution sweep (21.6% at <=2, 30.2% at <=3, 37.7% at <=4, plateauing above 15) plus the Step 7b automatic borderline-image render, reviewed at run time. No separate written visual log of individual borderline images survives, so the paper should describe this as a distribution-plus-informal-visual-review threshold, not a fully documented masked protocol. See `config/qc.toml`. |
+| D-13 | `SDXL_USE_NEGATIVE_PROMPT = True` is kept as run; the FLUX/SDXL negative-prompt asymmetry is disclosed, not eliminated. | The dataset was already generated with SDXL receiving a negative prompt and FLUX (guidance-distilled, no CFG) receiving none. Switching to `False` for strict parity would require re-generating the SDXL portion, which is out of scope for the frozen dataset. Disclosed in `research-context.md` §6 and surfaced by the app (`config/models.toml`, `/provenance`). |
+| D-14 | Full 40-char revision shas for both models were resolved from the notebook's printed 8-char short shas via the HF Hub API (`/api/models/{repo}?revision={short_sha}`), not re-run from the original pod. | The notebook only ever printed and logged the first 8 characters (`_info.sha[:8]`); the full sha was held in memory but never written to `run_environment_*.txt`. FLUX.1-schnell: `741f7c3ce8b383c54771c7003378a50191e9efe9`. SDXL base 1.0: `462165984030d82259a11f4367a4eed129e94a7b`. Both verified directly against the HF API on 2026-09-23, not taken from a summarized fetch. |
+| D-15 | FLUX precision for the published results is `fp8_layerwise`, not `bf16`. | The v15 run auto-planned this for the 22 GiB L4 pod (bf16 needs ~26 GiB+ resident). This is a disclosed precision change per the notebook's own flag ("PRECISION CHANGE -- disclose in the methods section") and creates a further asymmetry with SDXL's fp16. Recorded in `config/models.toml`. |
+| D-16 | SDXL's near-total QC failure at `FLAT_P95_DE_MAX = 3.0` (9/1,280 = 0.7% pass, vs FLUX's 763/1,280 = 59.6%) is kept as-is and disclosed, not treated as a bug or reason to change the threshold. | Confirmed by analyzing `data/study/`: SDXL's 9 surviving images are spread one-per-cell across only 9 of 40 (colour × style) cells (`C_reference_anchor` fully wiped, 0/256); no SDXL group reaches n>=10. H1's 46-group Spearman correlation includes these 9 as trivial zero-consistency artifacts (n=1 self-distance). This is a real finding about SDXL at 512px under this flatness criterion, not a data error. The study explorer (FR-1.1/1.3) must visibly flag near-empty SDXL groups rather than rendering them as blank/missing data, and any FLUX-vs-SDXL comparison in the app or paper must carry this caveat. |
+| D-17 | `import_study.py` accepts a notebook value if it matches to 1e-9 **or** to half a unit in the last digit printed in `reliable_results.csv`. | The frozen `reliable_results.csv` (run 20260913T083658Z) was re-saved through a spreadsheet app (`TRUE`/`FALSE`, ~10 significant figures), and no full-precision copy survives (user confirmed 2026-09-25). `all_images.csv` is unaffected. Under the strict check, 3,235 comparisons failed, all at the last printed digit. A real disagreement still aborts the import. `consistency_de00` is taken from this file, so it carries the same rounding. |

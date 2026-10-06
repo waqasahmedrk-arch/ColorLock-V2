@@ -1,0 +1,5 @@
+[qc]
+flat_p95_de_max = 3.0
+crop_fraction   = 0.5
+percentile      = 95
+calibration_note = "Value used to generate the frozen study dataset (run 20260913T083658Z), kept as final per D-QC. Step 7a distribution: 21.6% kept at <=2, 30.2% at <=3 (772/2,560 images), 37.7% at <=4, plateauing above 15. 3.0 was chosen before the dE00 results were read (MAX_RETRIES=0, no re-generation), satisfying the pre-registration requirement. Step 7b's automatic borderline-case render (worst KEPT vs best FLAGGED at this threshold) was inspected each run as a sanity check on flat-field swatches; no written per-run visual log was kept and no visual disclosure of specific borderline images is available. FLAG: acceptable as the frozen threshold for this dataset since re-running Step 7a/7b would only be for a new dataset, but the paper should describe this as a threshold fixed by rejection-rate distribution + informal borderline-image review, not a fully documented masked visual protocol."

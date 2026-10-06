@@ -1,0 +1,155 @@
+/* Provenance page (app/(app)/provenance/page.tsx): pipeline strip in the hero, pinned
+   model cards and the measurement settings with a central-crop diagram. Shared hero and
+   scroll-reveal styles live in globals.css. */
+
+.prov-page h2.prov-title { display: flex; align-items: center; margin: 2.3rem 0 0.9rem; font-size: 1.2rem; letter-spacing: -0.01em; }
+.prov-title .icon.lead { color: var(--accent); }
+
+/* Pipeline: nodes pop in left to right, joined by a line with dashes flowing along it. */
+.pipeline {
+  list-style: none; margin: 24px 0 0; padding: 0; max-width: 640px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.pipeline li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.pipeline li + li::before {
+  content: ""; position: absolute; top: 19px; right: calc(50% + 24px); left: calc(-50% + 24px); height: 2px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 11px);
+  background-size: 22px 2px; opacity: 0.55; transform-origin: left;
+  animation: prov-line 0.5s var(--ease-out) calc(0.35s + var(--i) * 140ms) both, prov-flow 0.9s linear infinite;
+}
+.pipe-node {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--accent);
+  box-shadow: 0 6px 16px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: res-pop 0.5s var(--ease-pop) calc(0.25s + var(--i) * 140ms) both;
+  transition: transform 0.3s var(--ease-pop), background 0.2s ease, color 0.2s ease;
+}
+.pipeline li:hover .pipe-node { transform: translateY(-3px) scale(1.06); background: var(--accent); color: #fff; }
+.pipeline li:nth-child(2) .pipe-node { border-color: color-mix(in srgb, var(--ok) 50%, var(--border)); }
+.pipe-label {
+  font-size: 0.76rem; font-weight: 600; color: var(--muted); line-height: 1.25;
+  animation: res-rise 0.5s var(--ease-out) calc(0.35s + var(--i) * 140ms) both;
+}
+.pipeline li:nth-child(4) .pipe-label { font-family: var(--mono); }
+
+/* Cards */
+.prov-models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.prov-card {
+  position: relative; margin: 0; padding: 18px 20px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.prov-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); box-shadow: 0 18px 36px -24px rgba(0, 0, 0, 0.4); }
+.prov-card.model-flux { --tint: #4169E1; }
+.prov-card.model-sdxl { --tint: #DC143C; }
+.prov-card[class*="model-"]::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 3px;
+  background: linear-gradient(90deg, var(--tint), color-mix(in srgb, var(--tint) 30%, transparent));
+}
+
+.prov-card-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.prov-card-head > div { flex: 1; min-width: 0; }
+.prov-card-head h3 { margin: 0 0 2px; font-size: 1.05rem; }
+.prov-icon {
+  display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 11px;
+  background: color-mix(in srgb, var(--tint, var(--accent)) 13%, transparent); color: var(--tint, var(--accent));
+}
+.prov-icon .icon { width: 19px; height: 19px; }
+.prov-repo { font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere; gap: 4px; }
+.prov-repo .icon { width: 0.9em; height: 0.9em; opacity: 0; transform: translateX(-4px); transition: opacity 0.2s ease, transform 0.25s var(--ease-out); }
+.prov-repo:hover { color: var(--accent); text-decoration: none; }
+.prov-repo:hover .icon { opacity: 1; transform: none; }
+.prov-pin { flex: none; }
+
+/* Revision sha: first 7 characters emphasised, the rest faded, with a copy button. */
+.prov-sha {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 12px; margin-bottom: 14px;
+  border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.prov-sha-label { flex: none; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.prov-sha-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.82rem; }
+.prov-sha-value b { color: var(--text); font-weight: 700; }
+button.copy-btn {
+  flex: none; padding: 5px 10px; border-radius: 7px; font-size: 0.76rem; gap: 5px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+button.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+button.copy-btn:active { transform: scale(0.95); }
+button.copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.copy-btn.is-copied { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+button.copy-btn.is-copied .icon { animation: res-pop 0.4s var(--ease-pop) both; }
+
+/* Generation settings as four small tiles. */
+.prov-specs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.prov-specs > div {
+  padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.prov-specs > div:hover { border-color: color-mix(in srgb, var(--tint, var(--accent)) 45%, var(--border)); background: color-mix(in srgb, var(--tint, var(--accent)) 5%, transparent); }
+.prov-specs dt { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.prov-specs dd { margin: 2px 0 0; font-size: 1.05rem; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.prov-specs dd.mono { font-size: 0.85rem; padding-top: 3px; }
+
+/* Measurement */
+.prov-measure { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: stretch; }
+.prov-list { margin: 0; display: grid; }
+.prov-list > div {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 4px 16px; align-items: baseline;
+  padding: 10px 4px; border-bottom: 1px dashed var(--border);
+}
+.prov-list > div:last-child { border-bottom: 0; }
+.prov-list dt { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.88rem; }
+.prov-list dt .icon { color: var(--accent); opacity: 0.8; }
+.prov-list dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.prov-date { margin-left: 10px; font-size: 0.82rem; }
+
+/* Central-crop diagram: a stand-in image, the kept window outlined, a scan line sweeping it. */
+.prov-crop { display: flex; flex-direction: column; gap: 14px; }
+.crop-frame { position: relative; width: 100%; max-width: 220px; aspect-ratio: 1; margin: 0 auto; border-radius: 10px; overflow: hidden; }
+.crop-image {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.35), transparent 30%),
+    radial-gradient(circle at 85% 80%, rgba(0, 0, 0, 0.35), transparent 35%),
+    linear-gradient(135deg, #5b7ff0, #4169E1 45%, #3354c4);
+}
+.crop-window {
+  position: absolute; left: 50%; top: 50%; width: var(--crop); height: var(--crop); translate: -50% -50%;
+  border: 2px dashed #fff; border-radius: 4px;
+  box-shadow: 0 0 0 999px color-mix(in srgb, #000 42%, transparent);
+  display: grid; place-items: center; overflow: hidden;
+}
+.crop-window span {
+  padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.45); color: #fff;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em;
+}
+.crop-scan {
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.6);
+  animation: prov-scan 2.8s ease-in-out 1.2s infinite;
+}
+.prov-crop figcaption { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; text-align: center; }
+.reveal[data-in] .crop-window { animation: prov-crop-in 0.9s var(--ease-out) 0.35s both; }
+
+@keyframes prov-line { from { transform: scaleX(0); opacity: 0; } }
+@keyframes prov-flow { to { background-position: 22px 0; } }
+@keyframes prov-scan { 0%, 100% { top: 0; opacity: 0.25; } 50% { top: calc(100% - 2px); opacity: 1; } }
+@keyframes prov-crop-in { from { width: 100%; height: 100%; opacity: 0; } }
+
+@media (max-width: 860px) {
+  .prov-models { grid-template-columns: 1fr; }
+  .prov-measure { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .prov-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prov-list > div { grid-template-columns: 1fr; }
+  .pipe-label { font-size: 0.68rem; }
+  .pipe-node { width: 34px; height: 34px; border-radius: 10px; }
+  .pipeline li + li::before { top: 16px; right: calc(50% + 20px); left: calc(-50% + 20px); }
+  .prov-sha-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prov-page *, .prov-page *::before, .prov-page *::after { animation: none !important; transition: none !important; }
+}

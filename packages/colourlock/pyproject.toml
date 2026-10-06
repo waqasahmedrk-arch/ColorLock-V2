@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "colourlock"
+version = "0.1.0"
+description = "Measurement instrument for text-to-image colour fidelity (ColourLock study)."
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scikit-image>=0.22",
+    "scikit-learn>=1.3",
+    "Pillow>=10.0",
+    "scipy>=1.11",
+    "pandas>=2.1",
+]
+
+[project.optional-dependencies]
+prompts = ["transformers>=4.40"]
+dev = ["pytest>=8.0", "pytest-cov", "mypy>=1.8", "ruff>=0.4", "pandas-stubs", "scipy-stubs"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+strict = true
+# No python_version pin: mypy checks against the running interpreter, so CI on
+# 3.11 checks 3.11 (recent numpy stubs use 3.12-only syntax on newer Pythons).
+# scikit-image ships without annotations; calls into it are otherwise flagged.
+untyped_calls_exclude = ["skimage"]
+
+[[tool.mypy.overrides]]
+# No type information published for these.
+module = ["sklearn.*", "transformers", "skimage.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: parity tests over the full study dataset",
+    "gpu: requires CUDA, not run in CI",
+]

@@ -1,0 +1,82 @@
+# Local stack: api, postgres, redis, minio. Run from the repo root:
+#   docker compose -f infra/docker-compose.yml up --build
+#   docker compose -f infra/docker-compose.yml --profile import run --rm import
+# The GPU worker (mock backend) is added in roadmap Phase 3.
+name: colourlock
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: colourlock
+      POSTGRES_PASSWORD: colourlock
+      POSTGRES_DB: colourlock
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U colourlock"]
+      interval: 5s
+      retries: 10
+
+  # Not used until Phase 3 (generation queue + rate limits).
+  redis:
+    image: redis:7-alpine
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: colourlock
+      MINIO_ROOT_PASSWORD: colourlock-dev-only
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: >
+      sh -c "mc alias set local http://minio:9000 colourlock colourlock-dev-only &&
+             mc mb --ignore-existing local/colourlock"
+
+  api:
+    build: {context: .., dockerfile: infra/api.Dockerfile}
+    env_file: [{path: ../.env, required: false}]
+    environment: &api-env
+      DATABASE_URL: postgresql+psycopg://colourlock:colourlock@postgres:5432/colourlock
+      STORAGE_BACKEND: s3
+      S3_BUCKET: colourlock
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: colourlock
+      AWS_SECRET_ACCESS_KEY: colourlock-dev-only
+      FRONTEND_ORIGINS: http://localhost:3000
+      PUBLIC_BASE_URL: http://localhost:8000
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+
+  # One-off: load data/study into postgres + minio.
+  import:
+    profiles: [import]
+    build: {context: .., dockerfile: infra/api.Dockerfile}
+    env_file: [{path: ../.env, required: false}]
+    environment: *api-env
+    volumes: ["../data/study:/app/data/study:ro"]
+    working_dir: /app/backend/api
+    command: >
+      sh -c "alembic upgrade head &&
+             python /app/scripts/import_study.py --files upload
+               --study-dir /app/data/study/colourlock_full_study --replace"
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+
+volumes:
+  pgdata:
+  miniodata:

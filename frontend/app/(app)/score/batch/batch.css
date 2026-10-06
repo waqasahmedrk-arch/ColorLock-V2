@@ -1,0 +1,104 @@
+/* Batch scoring (app/(app)/score/batch). Builds on score.css: same form, dropzone and target picker. */
+
+/* Dropzone shrinks once files are added. */
+.batch-drop { transition: min-height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease; }
+.batch-drop.is-compact { min-height: 0; padding: 14px; flex-direction: row; flex-wrap: wrap; gap: 4px 10px; }
+.batch-drop.is-compact .score-drop-icon { width: 34px; height: 34px; margin: 0; border-radius: 10px; font-size: 1rem; animation: none; }
+.batch-drop.is-compact .score-drop-hint { width: 100%; margin: 0; }
+.batch-notice { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; font-size: 0.8rem; color: var(--warn); }
+.batch-notice .icon { flex: none; margin-top: 0.2em; }
+
+.batch-list-head { display: flex; align-items: center; justify-content: space-between; margin: 12px 0 6px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.batch-list { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; }
+.batch-list li {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  padding: 6px 8px; font-size: 0.84rem;
+  animation: score-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 25ms) both;
+}
+.batch-list li + li { border-top: 1px solid var(--border); }
+.batch-list img { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
+.batch-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-list .muted { font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+/* While scoring: the queued thumbnails pulse in sequence. */
+.batch-progress { padding: 20px; border-radius: 16px; }
+.batch-progress p { margin: 0 0 14px; }
+.batch-progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
+.batch-progress-grid span {
+  aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--surface-2);
+  animation: batch-pulse 1.6s ease-in-out calc(var(--i) * 90ms) infinite;
+}
+.batch-progress-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes batch-pulse { 0%, 100% { opacity: 0.45; transform: scale(0.94); } 50% { opacity: 1; transform: none; } }
+
+/* Results */
+.batch-result { display: flex; flex-direction: column; gap: 12px; }
+.batch-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-radius: 16px; }
+.batch-target { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.batch-target-swatch { flex: none; width: 40px; height: 40px; border-radius: 11px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.batch-target .kicker { margin-bottom: 1px; }
+.batch-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.batch-download { display: inline-flex; align-items: center; gap: 7px; margin: 0; }
+
+.batch-summary {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+}
+.batch-summary > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; min-width: 0; }
+.batch-summary > div + div { border-left: 1px solid var(--border); }
+.batch-summary span { font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.batch-summary strong { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.batch-summary strong small { font-size: 0.8rem; font-weight: 500; color: var(--muted); }
+.batch-summary strong.bad { color: var(--bad); }
+.batch-summary .batch-range { font-size: 1.05rem; }
+.batch-descriptive { display: flex; gap: 6px; align-items: center; margin: -4px 0 0; font-size: 0.76rem; }
+
+.batch-table-wrap { padding: 0; overflow-x: auto; border-radius: 14px; }
+.batch-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.batch-table th {
+  padding: 0; text-align: left; white-space: nowrap; background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
+  border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted);
+}
+.batch-table th:not(:has(button)) { padding: 9px 12px; }
+.batch-table th.num, .batch-table td.num { text-align: right; }
+.batch-sort {
+  display: inline-flex; align-items: center; gap: 4px; width: 100%; padding: 9px 12px; margin: 0; border-radius: 0;
+  background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+th.num .batch-sort { justify-content: flex-end; }
+.batch-sort .icon { width: 12px; height: 12px; opacity: 0.35; transition: opacity 0.2s ease; }
+.batch-sort:hover { color: var(--text); }
+th[aria-sort] .batch-sort { color: var(--text); }
+th[aria-sort] .batch-sort .icon { opacity: 1; }
+.batch-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.batch-table tbody tr:last-child td { border-bottom: 0; }
+.batch-table tbody tr { animation: score-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) calc(0.2s + var(--i) * 35ms) both; transition: background-color 0.15s ease; }
+.batch-table tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.batch-name { display: flex; align-items: center; gap: 9px; max-width: 260px; }
+.batch-name img { flex: none; width: 30px; height: 30px; border-radius: 7px; object-fit: cover; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
+.batch-name > span:not(.batch-warn) { overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.batch-warn { display: inline-flex; align-items: center; gap: 3px; flex: none; font-size: 0.7rem; font-weight: 600; color: var(--warn); }
+.batch-measured { display: inline-flex; align-items: center; gap: 7px; }
+.batch-measured i { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+.batch-measured .mono { font-size: 0.78rem; color: var(--muted); }
+.batch-delta { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 64px; }
+.batch-delta-bar { display: block; width: 64px; height: 3px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.batch-delta-bar i {
+  display: block; height: 100%; width: var(--w); border-radius: 2px; transform-origin: left;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); animation: score-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+}
+.batch-table td.neg { color: var(--warn); }
+.batch-table tr.is-error td { color: var(--muted); }
+.batch-error { display: flex; align-items: center; gap: 7px; white-space: normal !important; }
+.batch-error .icon { color: var(--bad); flex: none; }
+.batch-error strong { color: var(--bad); font-weight: 600; }
+
+@media (max-width: 1100px) {
+  .batch-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .batch-summary > div:nth-child(4) { border-left: 0; }
+  .batch-summary > div:nth-child(n + 4) { border-top: 1px solid var(--border); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .batch-list li, .batch-progress-grid span, .batch-table tbody tr, .batch-delta-bar i { animation: none; }
+  .batch-drop, .batch-switch .icon { transition: none; }
+}

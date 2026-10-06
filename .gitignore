@@ -1,0 +1,41 @@
+# Study data, weights, local DBs and storage
+data/
+*.safetensors
+*.ckpt
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+.next-admin/
+# Any other Next build dir (.next-admin.broken, test builds)
+.next*/
+out/
+frontend/.env.local
+# Build cache, and a file Next regenerates that imports from .next/ (breaks tsc in a fresh clone)
+*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Research notebooks are never committed: the study notebook's setup cell prints the
+# first characters of the HF token it loads. It is archived with the dataset instead.
+*.ipynb
+.ipynb_checkpoints/
+
+#Notebook python
+.ipynb
+
+# Admin selfie check: MediaPipe WASM + face model, put there by frontend/scripts/face-assets.mjs
+frontend/public/mediapipe/

@@ -1,0 +1,385 @@
+/* Login, sign-up and password reset. Colours come from the theme tokens in globals.css;
+   the visual panel is dark in both themes so the colour wheel reads the same way. */
+
+.auth {
+  --auth-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px;
+  min-height: calc(100vh - var(--header-space) - 96px); text-align: left; hyphens: manual;
+}
+@media (max-width: 880px) {
+  .auth { grid-template-columns: 1fr; min-height: 0; }
+  .auth-visual { min-height: 190px; }
+}
+
+/* ---------- Visual panel ---------- */
+.auth-visual {
+  position: relative; overflow: hidden; border-radius: 20px; min-height: 520px;
+  background:
+    radial-gradient(60% 50% at 20% 15%, rgba(65, 105, 225, 0.45), transparent 70%),
+    radial-gradient(50% 45% at 85% 30%, rgba(220, 20, 60, 0.35), transparent 70%),
+    radial-gradient(55% 50% at 70% 90%, rgba(218, 165, 32, 0.35), transparent 70%),
+    radial-gradient(50% 50% at 10% 85%, rgba(34, 139, 34, 0.35), transparent 70%),
+    #0f0f14;
+  background-size: 140% 140%;
+  animation: auth-panel-in 0.7s var(--auth-ease) both, auth-aurora 18s ease-in-out infinite alternate;
+  color: #f4f3ee;
+}
+.auth-visual::after {
+  /* Fine grid, like a colour-checker target. */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+}
+@keyframes auth-panel-in { from { opacity: 0; transform: translateX(-24px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes auth-aurora { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
+
+/* Colour wheel (AuthShell). One 12s turn: the marker sweeps the hue ring while the centre
+   swatch's target half shows the hue under it and the measured half trails ~0.6s behind. */
+.auth-wheel {
+  --turn: 12s;
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  width: min(74%, 340px); aspect-ratio: 1;
+}
+.auth-wheel > * { position: absolute; inset: 0; }
+
+/* The hue ring: a conic gradient cut to a band. Hues start at 12 o'clock and run clockwise,
+   the same way the marker travels, so the centre colour matches what the marker points at. */
+.auth-wheel-ring {
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 70% 45%), hsl(180 75% 45%),
+    hsl(240 75% 60%), hsl(300 70% 55%), hsl(360 80% 55%));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 26px), #000 calc(100% - 25px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 26px), #000 calc(100% - 25px));
+  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.12));
+  animation: auth-ring-in 1.1s cubic-bezier(0.3, 1.2, 0.5, 1) 0.15s both;
+}
+.auth-wheel-dial { width: 100%; height: 100%; animation: auth-dial-in 1s var(--auth-ease) 0.4s both, auth-spin 90s linear infinite reverse; }
+.auth-wheel-dial line { stroke: rgba(255, 255, 255, 0.28); stroke-width: 0.8; stroke-linecap: round; }
+.auth-wheel-dial line.is-long { stroke: rgba(255, 255, 255, 0.6); stroke-width: 1.2; }
+
+/* Target reticle: three rings that pulse outward, and a fine crosshair. */
+.auth-wheel-reticle { display: grid; place-items: center; }
+.auth-wheel-reticle i {
+  position: absolute; width: 46%; aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  animation: auth-reticle 3.6s ease-out infinite;
+}
+.auth-wheel-reticle i:nth-child(2) { animation-delay: 1.2s; }
+.auth-wheel-reticle i:nth-child(3) { animation-delay: 2.4s; }
+.auth-wheel-cross {
+  position: absolute; inset: 22%;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.18)) center / 1px 100% no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.18)) center / 100% 1px no-repeat;
+  mask: radial-gradient(circle, transparent 30%, #000 31%, #000 68%, transparent 70%);
+  -webkit-mask: radial-gradient(circle, transparent 30%, #000 31%, #000 68%, transparent 70%);
+}
+
+/* The marker rides the ring on an arm that turns once per cycle. */
+.auth-wheel-arm { animation: auth-spin var(--turn) linear infinite; }
+.auth-wheel-marker {
+  position: absolute; left: 50%; top: 0; width: 30px; height: 30px; margin: -2px 0 0 -15px;
+  border-radius: 50%; border: 3px solid #fff; background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.45);
+  animation: auth-marker-in 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 1s both;
+}
+
+/* Centre swatch: target (left) and measured (right) halves, cycling with the marker. */
+.auth-wheel-chip {
+  inset: 34%; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 18px 40px -10px rgba(0, 0, 0, 0.6);
+  animation: auth-chip-in 0.8s cubic-bezier(0.3, 1.5, 0.5, 1) 0.7s both;
+}
+.auth-wheel-chip span { animation: auth-hue var(--turn) linear infinite; }
+.auth-wheel-chip .is-measured {
+  animation-delay: -0.6s;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.55);
+  filter: saturate(0.82) brightness(0.96);
+}
+
+/* The brand mark, small, in the corner. */
+.auth-mark {
+  position: absolute; left: 22px; bottom: 22px; display: grid; grid-template-columns: repeat(2, 14px); gap: 4px;
+  animation: auth-chip-in 0.6s var(--auth-ease) 1.2s both;
+}
+.auth-mark i { width: 14px; height: 14px; border-radius: 4px; display: block; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+
+@keyframes auth-spin { to { rotate: 360deg; } }
+@keyframes auth-hue {
+  0%   { background: hsl(0 80% 55%); }
+  16.7% { background: hsl(60 80% 55%); }
+  33.3% { background: hsl(120 70% 45%); }
+  50%  { background: hsl(180 75% 45%); }
+  66.7% { background: hsl(240 75% 60%); }
+  83.3% { background: hsl(300 70% 55%); }
+  100% { background: hsl(360 80% 55%); }
+}
+@keyframes auth-ring-in { from { opacity: 0; transform: scale(0.6) rotate(-120deg); } }
+@keyframes auth-dial-in { from { opacity: 0; transform: scale(0.85); } }
+@keyframes auth-chip-in { from { opacity: 0; transform: scale(0.3); } }
+@keyframes auth-marker-in { from { opacity: 0; transform: scale(0); } }
+@keyframes auth-reticle {
+  0% { opacity: 0; transform: scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+@media (max-width: 880px) {
+  .auth-wheel { width: 160px; }
+  .auth-wheel-ring {
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+  }
+  .auth-wheel-marker { width: 18px; height: 18px; margin-left: -9px; border-width: 2px; }
+  .auth-mark { left: 14px; bottom: 14px; }
+}
+
+
+/* ---------- Form panel ---------- */
+.auth-panel { display: grid; place-items: center; padding: 12px 0; }
+.auth-card { width: 100%; max-width: 420px; }
+.auth-card h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin: 4px 0 6px; }
+.auth-sub { margin-bottom: 26px; }
+
+.auth-rise { animation: auth-rise 0.55s var(--auth-ease) calc(var(--d, 0) * 60ms + 0.1s) both; }
+@keyframes auth-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-step { animation: auth-step-in 0.45s var(--auth-ease) both; }
+@keyframes auth-step-in { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+
+/* Floating-label input */
+.auth-input { position: relative; }
+/* `input[type]` outranks the global `input[type="text"]` form style (globals.css), which
+   otherwise wins whenever it loads later, as on the admin site, and drops the icon padding. */
+.auth-input input, .auth-input input[type] {
+  width: 100%; min-width: 0; height: 54px; padding: 20px 44px 6px 44px;
+  font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
+}
+.auth-input input:hover { border-color: color-mix(in srgb, var(--muted) 60%, var(--border)); }
+.auth-input input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.auth-input label {
+  position: absolute; left: 44px; top: 50%; translate: 0 -50%; pointer-events: none;
+  color: var(--muted); font-size: 0.95rem; transform-origin: left center;
+  transition: top 0.2s var(--auth-ease), font-size 0.2s var(--auth-ease), color 0.2s ease;
+}
+.auth-input input:focus + label,
+.auth-input input:not(:placeholder-shown) + label { top: 16px; font-size: 0.72rem; letter-spacing: 0.02em; }
+.auth-input input:focus + label { color: var(--accent); }
+.auth-input-icon.icon {
+  position: absolute; left: 15px; top: 50%; translate: 0 -50%; width: 18px; height: 18px;
+  color: var(--muted); transition: color 0.2s ease, scale 0.2s ease;
+}
+.auth-input:focus-within .auth-input-icon.icon { color: var(--accent); scale: 1.1; }
+button.auth-eye {
+  position: absolute; right: 8px; top: 50%; translate: 0 -50%; width: 34px; height: 34px;
+  padding: 0; justify-content: center; border-radius: 8px; background: transparent; color: var(--muted);
+}
+button.auth-eye:hover { background: var(--surface-2); color: var(--text); }
+button.auth-eye .icon { width: 18px; height: 18px; }
+
+.has-error .auth-input input { border-color: var(--bad); }
+.has-error .auth-input input:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 18%, transparent); }
+.has-error .auth-input-icon.icon { color: var(--bad); }
+.auth-field-error {
+  margin: 6px 2px 0; color: var(--bad); font-size: 0.8rem;
+  animation: auth-rise 0.25s var(--auth-ease) both;
+}
+
+/* Password strength: four bars in the brand colours, filled up to the score. */
+.auth-strength { display: flex; align-items: center; gap: 10px; margin-top: -4px; font-size: 0.78rem; color: var(--muted); }
+.auth-strength-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 0 0 132px; }
+.auth-strength-bars i { height: 5px; border-radius: 3px; background: var(--surface-2); position: relative; overflow: hidden; }
+.auth-strength-bars i::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--bar, var(--muted));
+  transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--auth-ease);
+}
+.auth-strength[data-score="1"] { --bar: #DC143C; }
+.auth-strength[data-score="2"] { --bar: #DAA520; }
+.auth-strength[data-score="3"] { --bar: #4169E1; }
+.auth-strength[data-score="4"] { --bar: #228B22; }
+.auth-strength[data-score="1"] i:nth-child(-n+1)::after,
+.auth-strength[data-score="2"] i:nth-child(-n+2)::after,
+.auth-strength[data-score="3"] i:nth-child(-n+3)::after,
+.auth-strength[data-score="4"] i:nth-child(-n+4)::after { transform: scaleX(1); }
+.auth-strength i:nth-child(2)::after { transition-delay: 0.05s; }
+.auth-strength i:nth-child(3)::after { transition-delay: 0.1s; }
+.auth-strength i:nth-child(4)::after { transition-delay: 0.15s; }
+
+/* Checkbox + inline row */
+.auth-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.88rem; }
+label.auth-check { display: inline-flex; align-items: center; gap: 9px; font-size: 0.88rem; color: var(--muted); cursor: pointer; user-select: none; }
+.auth-check input {
+  appearance: none; width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 5px; background: var(--surface);
+  display: grid; place-items: center; transition: background 0.2s ease, border-color 0.2s ease;
+}
+.auth-check input::after {
+  content: ""; width: 5px; height: 9px; margin-top: -2px; border: solid var(--bg); border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0); transition: transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.auth-check input:checked { background: var(--accent); border-color: var(--accent); }
+.auth-check input:checked::after { transform: rotate(45deg) scale(1); }
+.auth-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Submit: sheen sweeps across on hover, arrow nudges, turns green on success. */
+.auth-submit {
+  position: relative; overflow: hidden; justify-content: center; width: 100%; height: 50px;
+  margin-top: 4px; border-radius: 12px; font-size: 0.98rem; background: var(--text); color: var(--bg);
+  transition: transform 0.2s var(--auth-ease), box-shadow 0.25s ease, background 0.3s ease;
+}
+a.auth-submit { display: inline-flex; align-items: center; gap: 0.4em; font-weight: 600; }
+a.auth-submit:hover { text-decoration: none; }
+.auth-submit::before {
+  content: ""; position: absolute; inset: 0; transform: translateX(-120%) skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+}
+.auth-submit:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 12px 26px -12px rgba(0,0,0,0.5); }
+.auth-submit:not(:disabled):hover::before { transform: translateX(120%) skewX(-20deg); transition: transform 0.7s ease; }
+.auth-submit:not(:disabled):active { transform: translateY(0) scale(0.99); }
+.auth-submit:disabled { cursor: progress; opacity: 0.85; }
+.auth-submit-arrow { transition: transform 0.25s var(--auth-ease); }
+/* Sign-in verification: a bar fills across the button while it shows "Verifying…". */
+.auth-submit-progress {
+  position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; pointer-events: none;
+  background: linear-gradient(90deg, #4169E1, #8A2BE2, #DC143C, #DAA520);
+  transform: scaleX(0); transform-origin: left;
+  animation: auth-verify var(--ms, 3500ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.auth-submit[aria-busy="true"] .auth-submit-label { animation: auth-verify-pulse 1.6s ease-in-out infinite; }
+@keyframes auth-verify { to { transform: scaleX(1); } }
+@keyframes auth-verify-pulse { 50% { opacity: 0.65; } }
+@media (prefers-reduced-motion: reduce) {
+  .auth-submit-progress { animation: none; transform: scaleX(1); opacity: 0.5; }
+  .auth-submit[aria-busy="true"] .auth-submit-label { animation: none; }
+}
+.auth-submit:hover .auth-submit-arrow { transform: translateX(4px); }
+.auth-submit.is-done { background: var(--ok); color: #fff; opacity: 1; cursor: default; }
+.auth-submit-check { animation: auth-pop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+
+/* Error banner shakes in */
+.auth-error {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px;
+  background: var(--bad-bg); color: var(--bad); font-size: 0.88rem;
+  animation: auth-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+.auth-info { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--ok); font-size: 0.85rem; }
+@keyframes auth-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+/* Links styled as text buttons */
+button.auth-link {
+  display: inline; background: none; padding: 0; border-radius: 0; color: var(--accent);
+  font-weight: 600; font-size: inherit;
+}
+button.auth-link:hover:not(:disabled) { text-decoration: underline; }
+button.auth-link:disabled { color: var(--muted); font-weight: 500; cursor: default; opacity: 1; }
+button.auth-back { align-self: center; display: inline-flex; font-size: 0.88rem; }
+.auth-switch { text-align: center; font-size: 0.9rem; margin: 6px 0 0; }
+.auth-resend { text-align: center; font-size: 0.85rem; margin: 0; }
+
+/* OTP */
+.auth-mail-badge {
+  width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; align-self: center;
+  color: #fff; background: linear-gradient(135deg, #4169E1, #8A2BE2);
+  box-shadow: 0 14px 30px -12px #4169E1; animation: auth-badge 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.auth-mail-badge .icon { width: 26px; height: 26px; }
+@keyframes auth-badge { from { opacity: 0; transform: scale(0.3) rotate(-25deg); } }
+.auth-step-lead { text-align: center; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.auth-step-lead strong { color: var(--text); }
+.auth-otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 2px; }
+.auth-otp input {
+  width: 100%; min-width: 0; height: 58px; padding: 0; text-align: center;
+  font: 600 1.5rem/1 var(--mono); color: var(--text); caret-color: var(--accent);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  animation: auth-rise 0.45s var(--auth-ease) calc(var(--i) * 50ms + 0.1s) both;
+}
+.auth-otp input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); transform: translateY(-2px); }
+.auth-otp input.is-filled { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); animation: auth-pop 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.auth-otp.is-error { animation: auth-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.auth-otp.is-error input { border-color: var(--bad); }
+@keyframes auth-pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+/* Success */
+.auth-success { align-items: center; text-align: center; }
+.auth-success h2 { margin: 6px 0 0; }
+.auth-success p { margin: 0 0 6px; }
+.auth-success-mark {
+  width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ok-bg); color: var(--ok);
+  animation: auth-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.auth-success-mark .icon { width: 34px; height: 34px; stroke-dasharray: 30; stroke-dashoffset: 30; animation: auth-draw 0.5s ease 0.3s forwards; }
+@keyframes auth-draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth *, .auth *::before, .auth *::after, .auth-visual {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    animation-delay: 0s !important; transition-duration: 0.01ms !important;
+  }
+}
+
+/* Admin sign-in steps (admin-login/AdminLoginForm.tsx): password, then the emailed code. */
+.auth-steps { display: flex; align-items: center; gap: 10px; list-style: none; margin: 4px 0 18px; padding: 0; font-size: 0.82rem; color: var(--muted); }
+.auth-steps li { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; transition: color 0.3s ease; }
+.auth-steps li + li::before { content: ""; width: 28px; height: 2px; border-radius: 2px; background: var(--border); margin-right: 3px; transition: background-color 0.4s ease; }
+.auth-steps li.is-current + li::before, .auth-steps li.is-done + li::before { background: var(--accent); }
+.auth-steps span {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 0.75rem;
+  border: 2px solid var(--border); background: var(--surface); transition: all 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.auth-steps span .icon { width: 13px; height: 13px; }
+.auth-steps li.is-current { color: var(--text); }
+.auth-steps li.is-current span { border-color: var(--accent); color: var(--accent); transform: scale(1.08); }
+.auth-steps li.is-done { color: var(--ok); }
+.auth-steps li.is-done span { border-color: var(--ok); background: var(--ok); color: #fff; }
+
+/* Admin selfie step (admin-login/SelfieStep.tsx) */
+.selfie-frame {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden;
+  background: #0b0d12; border: 2px solid var(--border); transition: border-color 0.3s ease;
+}
+.selfie-frame[hidden] { display: none; }
+.selfie-frame.is-good { border-color: var(--ok); }
+/* Shown mirrored, like a mirror; the uploaded photo isn't. */
+.selfie-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.selfie-video[hidden] { display: none; }
+.selfie-guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.selfie-shade { fill: rgba(0, 0, 0, 0.45); }
+.selfie-oval {
+  fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 2; stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke; transition: stroke 0.3s ease;
+}
+.selfie-frame.is-good .selfie-oval { stroke: var(--ok); stroke-dasharray: none; stroke-width: 3; }
+.selfie-hint {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0;
+  display: inline-flex; align-items: center; gap: 6px; max-width: calc(100% - 24px);
+  padding: 6px 14px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff;
+  font-size: 0.88rem; font-weight: 600; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.selfie-hint .icon { width: 15px; height: 15px; animation: auth-spin 1s linear infinite; }
+.selfie-checks { display: flex; justify-content: center; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.selfie-checks li {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; font-weight: 600;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+.selfie-checks li .icon { width: 14px; height: 14px; }
+.selfie-checks li.is-done { color: var(--ok); border-color: var(--ok); }
+.selfie-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.selfie-actions .auth-submit { width: 100%; }
+.selfie-small { font-size: 0.8rem; }

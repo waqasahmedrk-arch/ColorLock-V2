@@ -1,0 +1,124 @@
+/* Printable score report (history/report). On screen it is a sheet of paper on the page; in print
+   only the sheet is shown. The sheet always uses light "paper" colours, whatever the site theme. */
+
+.report { --ease: cubic-bezier(0.2, 0.8, 0.2, 1); text-align: left; hyphens: manual; }
+
+.report-toolbar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  max-width: 820px; margin: 0 auto 16px;
+}
+a.report-btn, button.report-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 999px;
+  font-size: 0.88rem; font-weight: 600; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); transition: background-color 0.2s ease, transform 0.2s ease;
+}
+a.report-btn:hover { text-decoration: none; background: var(--surface-2); }
+button.report-btn.is-primary { background: var(--text); color: var(--bg); border-color: transparent; }
+button.report-btn.is-primary:not(:disabled):hover { transform: translateY(-1px); }
+.report-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 60px 0; }
+
+/* ---------- The sheet ---------- */
+.report-sheet {
+  --p-ink: #1b1b19; --p-muted: #5f5e58; --p-line: #dcdad3; --p-soft: #f3f2ee;
+  --p-ok: #1f7a4a; --p-ok-bg: #e5f3ea; --p-bad: #b3361f; --p-bad-bg: #fbe9e4;
+  color-scheme: light;
+  max-width: 820px; margin: 0 auto; padding: 44px 48px 36px;
+  background: #fff; color: var(--p-ink); border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 24px 60px -30px rgba(0, 0, 0, 0.45);
+  font-size: 13px; line-height: 1.5;
+  animation: report-in 0.5s var(--ease) both;
+}
+.report-sheet .muted { color: var(--p-muted); }
+.report-sheet code { font-family: var(--mono); font-size: 0.92em; }
+
+.report-head { padding-bottom: 18px; margin-bottom: 20px; border-bottom: 2px solid var(--p-ink); }
+.report-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; }
+.report-dots { display: inline-grid; grid-template-columns: repeat(2, 8px); gap: 2px; }
+.report-dots i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+.report-head h1 { margin: 14px 0 10px; font-size: 1.75rem; letter-spacing: -0.02em; color: var(--p-ink); }
+.report-meta { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; }
+.report-meta dt { color: var(--p-muted); }
+.report-meta dd { margin: 0; }
+.report-generated { grid-column: 1 / -1; color: var(--p-muted); margin-top: 4px !important; }
+.report-empty { padding: 30px 0; text-align: center; color: var(--p-muted); }
+
+.report-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.report-summary > div {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+  border: 1px solid var(--p-line); border-radius: 8px; background: var(--p-soft);
+}
+.report-summary span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--p-muted); }
+.report-summary strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.report-summary small { font-size: 0.75rem; font-weight: 500; color: var(--p-muted); }
+
+.report-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.report-table th {
+  text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--p-muted);
+  padding: 7px 6px; border-bottom: 1.5px solid var(--p-ink);
+}
+.report-table td { padding: 7px 6px; border-bottom: 1px solid var(--p-line); vertical-align: middle; }
+.report-table tbody tr:nth-child(even) td { background: #fafaf8; }
+.report-table .num { text-align: right; }
+.report-table .strong { font-weight: 700; }
+.report-table .nowrap { white-space: nowrap; }
+.report-name { font-weight: 600; max-width: 200px; overflow-wrap: anywhere; }
+.report-chip { display: inline-flex; align-items: center; gap: 6px; }
+.report-chip i { width: 14px; height: 14px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.report-chip > span { display: flex; flex-direction: column; line-height: 1.25; }
+.report-chip-label { font-size: 0.78rem; text-transform: capitalize; }
+
+.report-badge {
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+}
+.report-badge.ok { color: var(--p-ok); background: var(--p-ok-bg); }
+.report-badge.bad { color: var(--p-bad); background: var(--p-bad-bg); }
+.report-badge.big { padding: 3px 12px; font-size: 0.95rem; }
+
+/* Single score */
+.report-one-name { margin: 0; font-size: 1.35rem; overflow-wrap: anywhere; color: var(--p-ink); }
+.report-one > p { margin: 2px 0 16px; }
+.report-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.report-compare figure { margin: 0; }
+.report-swatch { display: block; height: 110px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+.report-compare figcaption { margin-top: 6px; font-size: 0.85rem; }
+.report-headline { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0 6px; }
+.report-headline > div {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 8px;
+}
+.report-headline span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--p-muted); }
+.report-headline strong { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.report-headline .report-badge { align-self: flex-start; }
+.report-one h3 { margin: 18px 0 8px; font-size: 0.95rem; color: var(--p-ink); }
+.report-kv { display: grid; grid-template-columns: max-content 1fr; gap: 5px 18px; margin: 0; font-variant-numeric: tabular-nums; }
+.report-kv dt { color: var(--p-muted); }
+.report-kv dd { margin: 0; overflow-wrap: anywhere; }
+.report-warnings { margin: 0; padding-left: 1.2em; }
+.report-callout { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: #fdf1d8; color: #6b4600; }
+
+.report-notes { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--p-line); font-size: 0.8rem; color: var(--p-muted); }
+.report-notes h2 { margin: 0 0 6px; font-size: 0.85rem; color: var(--p-ink); }
+.report-notes p { margin: 0 0 5px; }
+
+@keyframes report-in { from { opacity: 0; transform: translateY(14px); } }
+@media (max-width: 640px) {
+  .report-sheet { padding: 24px 18px; }
+  .report-summary { grid-template-columns: repeat(2, 1fr); }
+  .report-table { font-size: 11px; }
+  .report-compare, .report-headline { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .report-sheet { animation: none; } }
+
+/* ---------- Print: only the sheet, on A4 ---------- */
+@page { size: A4; margin: 14mm 12mm; }
+@media print {
+  body:has(.report) { background: #fff !important; padding: 0 !important; }
+  body:has(.report) header.site, body:has(.report) footer.site, body:has(.report) .to-top,
+  body:has(.report) .click-loader, body:has(.report) .welcome, body:has(.report) .mobile-nav-layer,
+  .report-toolbar, .report .error { display: none !important; }
+  body:has(.report) main.shell { max-width: none; padding: 0; margin: 0; }
+  .report-sheet { max-width: none; padding: 0; box-shadow: none; border-radius: 0; animation: none; }
+  /* Keep swatch and badge colours: browsers drop backgrounds in print by default. */
+  .report-sheet, .report-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .report-table thead { display: table-header-group; }
+  .report-table tr, .report-summary, .report-compare, .report-headline, .report-notes { break-inside: avoid; }
+}

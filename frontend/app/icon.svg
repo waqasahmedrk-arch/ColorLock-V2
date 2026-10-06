@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 23 23">
+  <!-- The ColorLock mark: the navbar's 2x2 brand squares (9px, 3px gap, 2.5px radius). -->
+  <rect x="0" y="0" width="9" height="9" rx="2.5" fill="#4169E1"/>
+  <rect x="12" y="0" width="9" height="9" rx="2.5" fill="#DC143C"/>
+  <rect x="0" y="12" width="9" height="9" rx="2.5" fill="#228B22"/>
+  <rect x="12" y="12" width="9" height="9" rx="2.5" fill="#DAA520"/>
+</svg>

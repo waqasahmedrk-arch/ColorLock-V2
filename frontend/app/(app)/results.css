@@ -1,0 +1,244 @@
+/* Results page (app/(app)/page.tsx): hero, headline numbers, hypothesis cards, model switch
+   and the colour x style table. The look is flat and quiet: hairline borders, one radius, tabular
+   numbers. Motion is a short staggered entrance as sections scroll into view, bars that fill,
+   numbers that count up, a sliding model switch and a crossfade when the model changes. Hover
+   feedback is a tint or a small lift. Everything is static under prefers-reduced-motion. */
+
+.results-page { --rp-radius: 14px; --rp-line: var(--border); --rp-soft: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+
+/* Hero: softer glow over a faint dot grid. */
+.results-page .page-hero { padding: 38px 36px 30px; border-radius: 18px; }
+.hero-grid {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(115deg, transparent 35%, #000 100%);
+          mask-image: linear-gradient(115deg, transparent 35%, #000 100%);
+  animation: res-fade 1.4s ease 0.2s both;
+}
+.results-page .hero-glow i { opacity: 0.1; }
+.results-page .page-hero .lead { max-width: 64ch; line-height: 1.6; }
+
+/* The eight target colours, drawn in as a strip. */
+.hero-spectrum { display: flex; gap: 5px; margin-top: 24px; height: 6px; max-width: 440px; }
+.hero-spectrum i {
+  flex: 1; border-radius: 3px; transform-origin: left;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  animation: res-grow-x 0.6s var(--ease-out) calc(0.3s + var(--i) * 60ms) both;
+}
+
+/* Headline numbers */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.kpi {
+  position: relative; overflow: hidden; padding: 18px 20px 17px;
+  border: 1px solid var(--rp-line); border-radius: var(--rp-radius); background: var(--surface);
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease, border-color 0.3s ease;
+}
+/* A thin accent line that draws in across the top on hover. */
+.kpi::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent);
+  transform: scaleX(0); transform-origin: left; transition: transform 0.45s var(--ease-out);
+}
+.kpi:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--rp-line));
+  box-shadow: 0 12px 28px -20px rgba(0, 0, 0, 0.45);
+}
+.kpi:hover::before { transform: scaleX(1); }
+.kpi-icon {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; margin-bottom: 14px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent);
+}
+.kpi-icon .icon { width: 16px; height: 16px; }
+.kpi-value { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi-label { margin-top: 6px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.kpi-sub { display: flex; align-items: center; margin-top: 4px; font-size: 0.76rem; font-weight: 500; color: var(--text); opacity: 0.85; }
+.kpi-sub .swatch { width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; }
+
+/* Section headings: icon chip, title, then a hairline that draws out to the right. */
+.results-page .section-head { margin: 2.8rem 0 1rem; }
+.results-page h2.section-title {
+  display: flex; align-items: center; gap: 10px; margin: 0;
+  font-size: 1.15rem; font-weight: 700; letter-spacing: -0.015em;
+}
+.section-icon {
+  display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--rp-line); color: var(--accent);
+}
+.section-icon .icon { width: 15px; height: 15px; }
+.section-head:not(.results-bar) h2.section-title::after {
+  content: ""; flex: 1; height: 1px; margin-left: 6px; background: var(--rp-line);
+  transform-origin: left;
+}
+.section-head[data-in]:not(.results-bar) h2.section-title::after { animation: res-grow-x 0.8s var(--ease-out) 0.15s both; }
+
+/* Hypothesis cards: a verdict-coloured edge on the left, a small lift on hover. */
+.card.hyp {
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+  padding: 20px 22px 18px 24px; border-radius: var(--rp-radius); border-color: var(--rp-line);
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease, border-color 0.3s ease;
+}
+.card.hyp::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--tone);
+  transform-origin: top;
+}
+.reveal[data-in] .card.hyp::before { animation: res-grow-y 0.7s var(--ease-out) calc(0.2s + var(--i, 0) * 70ms) both; }
+.card.hyp.tone-ok { --tone: var(--ok); --tone-bg: var(--ok-bg); }
+.card.hyp.tone-bad { --tone: var(--bad); --tone-bg: var(--bad-bg); }
+.card.hyp.tone-warn { --tone: var(--warn); --tone-bg: var(--warn-bg); }
+.card.hyp:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--tone) 35%, var(--rp-line));
+  box-shadow: 0 16px 34px -24px color-mix(in srgb, var(--tone) 70%, #000);
+}
+.hyp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.hyp-id {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 7px;
+  background: var(--tone-bg); color: var(--tone); font-family: var(--mono); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em;
+}
+.hyp-id .icon { width: 13px; height: 13px; }
+.card.hyp .badge { border-radius: 7px; padding: 3px 9px; }
+.card.hyp h3 { font-size: 1rem; line-height: 1.4; font-weight: 700; }
+.card.hyp .stat { margin: 8px 0 10px; font-family: var(--mono); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+.hyp-p { font-family: var(--font-sans), system-ui, sans-serif; font-size: 0.88rem; font-weight: 500; }
+.hyp-text { font-size: 0.9rem; line-height: 1.55; }
+.hyp-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--rp-line); font-size: 0.8rem; line-height: 1.5; }
+.hyp-foot p { margin: 0 0 4px; }
+.hyp-foot p:last-child { margin: 0; }
+
+/* Model switch: a thumb slides between the two options. */
+.results-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+.seg {
+  position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 4px;
+  border: 1px solid var(--rp-line); border-radius: 11px; background: var(--surface);
+}
+.seg a {
+  position: relative; z-index: 1; justify-content: center; padding: 7px 16px; border-radius: 8px;
+  color: var(--muted); font-weight: 600; font-size: 0.86rem; white-space: nowrap; transition: color 0.25s ease;
+}
+.seg a:hover { color: var(--text); text-decoration: none; }
+.seg a[aria-current="page"] { color: var(--bg); }
+.seg a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg-thumb {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 8px;
+  background: var(--text); box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.5s var(--ease-out);
+}
+.seg[data-active="sdxl"] .seg-thumb { transform: translateX(100%); }
+
+/* QC pass-rate summary: a sentence over a meter, in a quiet panel. */
+.qc-summary {
+  margin-bottom: 14px; padding: 14px 18px 16px;
+  border: 1px solid var(--rp-line); border-radius: var(--rp-radius); background: var(--surface);
+  animation: res-rise 0.5s var(--ease-out) both;
+}
+.qc-summary p { margin: 0 0 10px; font-size: 0.9rem; }
+.qc-meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 0; }
+.qc-meter i {
+  display: block; height: 100%; border-radius: 3px; background: var(--ok);
+  transform-origin: left; animation: res-grow-x 1.1s var(--ease-out) 0.2s both;
+}
+.results-page .callout {
+  position: relative; margin: 0 0 14px; padding: 12px 16px 12px 42px;
+  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent); border-radius: var(--rp-radius);
+  font-size: 0.9rem; line-height: 1.5;
+}
+.results-page .callout .icon.lead { position: absolute; left: 16px; top: 15px; margin: 0; color: var(--warn); }
+.callout-in { animation: res-rise 0.45s var(--ease-out) both; }
+
+/* Table: crossfades in whenever the model switch remounts it. */
+.results-table {
+  border: 1px solid var(--rp-line); border-radius: var(--rp-radius); background: var(--surface);
+  animation: res-rise 0.5s var(--ease-out) 0.05s both;
+}
+.results-table table.results thead th {
+  padding: 11px 14px; background: var(--rp-soft); border-bottom: 1px solid var(--rp-line);
+  font-size: 0.74rem; font-weight: 600; color: var(--muted); vertical-align: bottom; line-height: 1.4;
+}
+.results-table table.results tbody th { padding: 12px 14px; font-weight: 600; }
+.results-table table.results td { border-left: 1px solid color-mix(in srgb, var(--rp-line) 60%, transparent); }
+/* The colour column stays put while the table scrolls sideways on small screens. */
+.results-table table.results tr > th:first-child {
+  position: sticky; left: 0; z-index: 1; background: var(--surface);
+  box-shadow: 1px 0 0 var(--rp-line);
+}
+.results-table table.results thead tr > th:first-child { background: var(--rp-soft); }
+.style-code {
+  display: inline-block; margin-right: 5px; padding: 1px 6px; border-radius: 5px;
+  background: var(--surface); border: 1px solid var(--rp-line); color: var(--text);
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+}
+table.results tbody tr { transition: background-color 0.2s ease; }
+table.results tbody tr:hover, table.results tbody tr:hover > th:first-child { background: var(--rp-soft); }
+table.results tbody th .swatch { width: 12px; height: 12px; border-radius: 3px; transition: transform 0.3s var(--ease-pop); }
+table.results tbody tr:hover th .swatch { transform: scale(1.25); }
+.results-table .cell { position: relative; padding: 12px 14px; min-height: 76px; transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+.results-table .cell:hover { background: var(--surface); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 50%, transparent); }
+.results-table .cell .acc { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+.results-table .cell .sub { font-size: 0.76rem; line-height: 1.45; }
+.results-table .cell .badge { margin-left: 4px; padding: 1px 6px; border-radius: 5px; font-size: 0.68rem; }
+.results-table .cell.low-n { background-image: repeating-linear-gradient(135deg, var(--hatch) 0 5px, transparent 5px 10px); }
+.cell-bar { display: block; height: 4px; margin: 6px 0 5px; border-radius: 2px; background: var(--surface-2); overflow: hidden; max-width: 120px; }
+.cell-bar i { display: block; height: 100%; border-radius: 2px; transform-origin: left; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
+.cell.low-n .cell-bar i { opacity: 0.45; }
+
+/* Legend: small labelled chips under the table. */
+.results-page .legend { gap: 8px; margin-top: 12px; }
+.results-page .legend > span {
+  display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--rp-line); background: var(--surface); font-size: 0.78rem;
+}
+.legend .swatch-bar {
+  display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 7px;
+  background: linear-gradient(90deg, #4169E1 60%, var(--surface-2) 60%);
+}
+.results-page .legend .swatch-hatch { vertical-align: 0; margin-right: 7px; width: 12px; height: 12px; }
+
+/* Disclosures: a quiet panel whose chevron turns as it opens. */
+.results-page details.disclosures {
+  margin-top: 2.8rem; padding: 0; overflow: hidden;
+  border: 1px solid var(--rp-line); border-radius: var(--rp-radius);
+}
+.results-page details.disclosures summary {
+  display: flex; align-items: center; gap: 8px; padding: 14px 18px; list-style: none;
+  font-size: 0.92rem; transition: background-color 0.2s ease;
+}
+.results-page details.disclosures summary::-webkit-details-marker { display: none; }
+.results-page details.disclosures summary::after {
+  content: ""; width: 7px; height: 7px; margin-left: auto; flex: none;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translateY(-2px); transition: transform 0.3s var(--ease-out);
+}
+.results-page details.disclosures[open] summary::after { transform: rotate(225deg) translateY(-2px); }
+.results-page details.disclosures summary:hover { background: var(--rp-soft); }
+.results-page details.disclosures .icon.lead { color: var(--warn); }
+.results-page details.disclosures ol { margin: 0; padding: 6px 18px 16px 2.4rem; border-top: 1px solid var(--rp-line); }
+.results-page details.disclosures[open] ol { animation: res-rise 0.35s var(--ease-out) both; }
+.results-page details.disclosures li { padding: 8px 0; margin: 0; font-size: 0.88rem; line-height: 1.5; }
+.results-page details.disclosures li + li { border-top: 1px dashed var(--rp-line); }
+.results-page details.disclosures li strong { margin-bottom: 2px; }
+
+/* Scroll reveal (components/Reveal.tsx), staggered by --i. */
+.results-page .reveal[data-in] .reveal-item { animation: res-rise 0.55s var(--ease-out) calc(var(--i, 0) * 70ms) both; }
+tbody.reveal[data-in] .reveal-item { animation-name: res-row; animation-delay: calc(var(--i, 0) * 50ms); }
+tbody.reveal[data-in] .cell-bar i { animation: res-grow-x 0.8s var(--ease-out) calc(0.25s + var(--i, 0) * 50ms) both; }
+.kpis.reveal[data-in] .kpi-icon { animation: res-pop 0.5s var(--ease-pop) calc(0.15s + var(--i, 0) * 70ms) both; }
+
+@keyframes res-row { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes res-grow-y { from { transform: scaleY(0); } }
+
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+  .results-page .page-hero { padding: 24px 18px 22px; border-radius: 14px; }
+  .kpis { gap: 10px; }
+  .kpi { padding: 14px; }
+  .kpi-value { font-size: 1.4rem; }
+  .seg { width: 100%; }
+  .seg a { padding: 7px 8px; }
+  .results-page .section-head { margin-top: 2.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-page *, .results-page *::before, .results-page *::after { animation: none !important; transition: none !important; }
+  .reveal[data-armed]:not([data-in]) .reveal-item { opacity: 1; }
+}
