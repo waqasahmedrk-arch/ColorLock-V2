@@ -1,9 +1,17 @@
 // Typed client for the ColourLock API (claude/specs.md §7).
 
+// On Vercel the API is a service on the same domain under /api (vercel.json), so the browser
+// calls it relative to the page. Vercel sets NEXT_PUBLIC_VERCEL_ENV on every deployment.
+const ON_VERCEL = Boolean(process.env.NEXT_PUBLIC_VERCEL_ENV);
 export const PUBLIC_API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
-// Server components may reach the API on an internal address.
-export const SERVER_API_BASE = process.env.API_INTERNAL_BASE_URL ?? PUBLIC_API_BASE;
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? (ON_VERCEL ? "/api/v1" : "http://localhost:8000/api/v1");
+// Server components may reach the API on an internal address, and need an absolute URL:
+// on Vercel, the production domain (or this deployment's own URL for previews).
+const VERCEL_HOST = process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+  ? process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL
+  : process.env.NEXT_PUBLIC_VERCEL_URL;
+export const SERVER_API_BASE = process.env.API_INTERNAL_BASE_URL
+  ?? (PUBLIC_API_BASE.startsWith("/") && VERCEL_HOST ? `https://${VERCEL_HOST}${PUBLIC_API_BASE}` : PUBLIC_API_BASE);
 
 export type ModelKey = "flux" | "sdxl";
 export const MODELS: { key: ModelKey; label: string }[] = [

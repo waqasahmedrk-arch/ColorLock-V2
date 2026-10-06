@@ -17,7 +17,17 @@ def ensure_sqlite_dir(url: str) -> None:
         Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
 
 
+def normalize_url(url: str) -> str:
+    """Hosted Postgres (Neon, Supabase, Vercel) hands out postgres:// or postgresql:// URLs,
+    which SQLAlchemy maps to psycopg2; this app ships psycopg 3."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def make_engine(url: str) -> Engine:
+    url = normalize_url(url)
     ensure_sqlite_dir(url)
     kwargs: dict = {"pool_pre_ping": True}
     if url.startswith("sqlite"):
