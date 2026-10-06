@@ -42,3 +42,9 @@ async def test_validation_errors_are_problem_json(client):
     assert r.status_code == 422
     assert r.headers["content-type"].startswith("application/problem+json")
     assert r.json()["title"] == "Request validation failed"
+
+
+async def test_deep_health_checks_databases_and_config(client):
+    body = (await client.get("/health?deep=true")).json()
+    assert body == {"status": "ok",
+                    "checks": {"database": "ok", "auth_database": "ok", "config": "ok"}}

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import math
+import os
+from collections.abc import Callable
 
+from colourlock.config import load_qc_config
 from colourlock.prompts import STYLES, build_prompt, validate_prompt
 from colourlock.targets import TARGETS
 from fastapi import APIRouter
+from sqlalchemy import text
 
+from ..db.session import make_engine
 from ..schemas.meta import Health, PromptStyle, PromptValidateIn, PromptValidateOut, Target
 from ..services.naming import STYLE_CODES, STYLE_DESCRIPTIONS
 from ..services.provenance import model_config, provenance
@@ -16,9 +21,38 @@ router = APIRouter(tags=["meta"])
 EXAMPLE_TARGET = "royal_blue"
 
 
-@router.get("/health", response_model=Health)
-def health() -> Health:
-    return Health(status="ok")
+@router.get("/health", response_model=Health, response_model_exclude_none=True)
+def health(deep: bool = False) -> Health:
+    """`deep=true` also tries the databases and the config files, for diagnosing a deployment.
+    It reports only "ok", "not configured" or the error's type, never URLs or messages."""
+    if not deep:
+        return Health(status="ok")
+    settings = get_settings()
+    checks = {
+        "database": _check_db(settings.database_url),
+        "auth_database": _check_db(settings.auth_db_url),
+        "config": _check(lambda: (load_qc_config(), model_config())),
+    }
+    return Health(status="ok" if set(checks.values()) == {"ok"} else "degraded", checks=checks)
+
+
+def _check(fn: Callable[[], object]) -> str:
+    try:
+        fn()
+        return "ok"
+    except Exception as exc:  # noqa: BLE001 - reported by type only
+        return f"error: {type(exc).__name__}"
+
+
+def _check_db(url: str) -> str:
+    # Serverless hosts (Vercel sets VERCEL=1) have a read-only file system: SQLite can't work.
+    if url.startswith("sqlite") and os.environ.get("VERCEL"):
+        return "not configured (set DATABASE_URL / AUTH_DATABASE_URL to a Postgres URL)"
+
+    def ping() -> None:
+        with make_engine(url).connect() as conn:
+            conn.execute(text("SELECT 1"))
+    return _check(ping)
 
 
 @router.get("/provenance")

@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 
 class Health(BaseModel):
     status: str
+    # /health?deep=true only: "ok" or why a dependency isn't usable (never secrets).
+    checks: dict[str, str] | None = None
 
 
 class Target(BaseModel):
